@@ -1,0 +1,38 @@
+version: '3.9'
+services:
+  api:
+    build:
+      context: ./docker/rust
+    container_name: rust-api
+    volumes:
+      - ../server:/app
+    depends_on:
+      - rust-grpc-db
+    ports:
+      - 8080:8080
+    tty: true
+    networks:
+      - rust-grpc
+
+  rust-grpc-db:
+    image: mysql:8
+    container_name: rust-grpc-db
+    environment:
+      MYSQL_DATABASE: rust-grpc
+      MYSQL_ROOT_PASSWORD: rust-grpc1234
+      MYSQL_USER: rust-grpc
+      MYSQL_PASSWORD: rust-grpc1234
+      TZ: Asis/Tokyo
+    platform: linux/arm64
+    ports:
+      - 3306:3306
+    volumes:
+      - rust-grpc-db:/var/lib/mysql
+    networks:
+      - rust-grpc
+
+networks:
+  rust-grpc:
+    driver: bridge
+volumes:
+  rust-grpc-db:
