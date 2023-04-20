@@ -25,7 +25,7 @@ impl TodoRepository for Todo {
 					description,
 					status,
 					created_at,
-					updated_at,
+					updated_at
 				FROM
 					todo
 				WHERE
@@ -99,9 +99,9 @@ impl TodoRepository for Todo {
         .bind(&todo.user_id)
         .bind(&todo.title)
         .bind(&todo.description)
-        .bind(&todo.status)
-        .bind(&todo.created_at)
-        .bind(&todo.updated_at)
+        .bind(todo.status)
+        .bind(todo.created_at)
+        .bind(todo.updated_at)
         .execute(&pool)
         .await;
 
@@ -135,8 +135,8 @@ impl TodoRepository for Todo {
         )
         .bind(&todo.title)
         .bind(&todo.description)
-        .bind(&todo.status)
-        .bind(&todo.updated_at)
+        .bind(todo.status)
+        .bind(todo.updated_at)
         .bind(&todo.todo_id)
         .bind(&todo.user_id)
         .execute(&pool)
