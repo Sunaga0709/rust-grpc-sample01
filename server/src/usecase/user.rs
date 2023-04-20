@@ -2,7 +2,6 @@ use sqlx::{mysql::MySql, Pool};
 
 use crate::app_error::error::AppError;
 use crate::domain::{model::user::User as UserModel, repository::user::User as UserRepository};
-// use crate::infrastructure::persistence::user::{User as UserRepoImpl};
 
 #[derive(Debug)]
 pub struct User {
@@ -10,7 +9,7 @@ pub struct User {
     pool: Pool<MySql>,
 }
 impl User {
-    pub fn new(repo: Box<dyn UserRepository + Send + Sync>, pool: Pool<MySql>) -> User {
+    pub fn new(repo: Box<dyn UserRepository + Send + Sync>, pool: Pool<MySql>) -> Self {
         User { repo, pool }
     }
 

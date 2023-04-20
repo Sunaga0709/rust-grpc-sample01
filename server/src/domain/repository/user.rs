@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use sqlx::{MySql, Pool};
 
 use crate::app_error::error::AppError;
-
 use crate::domain::model::user::User as UserModel;
 
 #[async_trait]
@@ -16,6 +15,6 @@ pub trait User {
 
 impl std::fmt::Debug for dyn User + Send + Sync {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "My custom debug implementation")
+        write!(f, "custom debug implementation UserRepository")
     }
 }

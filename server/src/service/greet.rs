@@ -1,8 +1,4 @@
-use tonic::{
-    Request,
-    Response,
-    Status,
-};
+use tonic::{Request, Response, Status};
 
 use crate::gen::grpc_api::greet_v1::greet_service_server;
 use crate::gen::grpc_api::greet_v1::{GreetRequest, GreetResponse};

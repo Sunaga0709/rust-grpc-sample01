@@ -1,5 +1,5 @@
-use tonic::{Request, Response, Status};
 use sqlx::{mysql::MySql, Pool};
+use tonic::{Request, Response, Status};
 
 use crate::domain::repository::user::User as UserRepository;
 use crate::gen::grpc_api::user_v1::{
@@ -8,21 +8,20 @@ use crate::gen::grpc_api::user_v1::{
     UpdateUserRequest, UpdateUserResponse, User as UserMessage,
 };
 use crate::usecase::user::User as UserUsecase;
-
 use crate::util::datetime;
 
 pub struct UserService {
-    repo:  Box<dyn UserRepository + Send + Sync + 'static>,
+    repo: Box<dyn UserRepository + Send + Sync + 'static>,
     uc: UserUsecase,
     pool: Pool<MySql>,
 }
 
 impl UserService {
     pub fn new(
-        repo:  Box<dyn UserRepository + Send + Sync + 'static>,
+        repo: Box<dyn UserRepository + Send + Sync + 'static>,
         uc: UserUsecase,
         pool: Pool<MySql>,
-    ) -> UserService {
+    ) -> Self {
         UserService { repo, uc, pool }
     }
 }
@@ -62,7 +61,7 @@ impl user_service_server::UserService for UserService {
 
         match self.repo.get(self.pool.clone(), user_id).await {
             Ok(result) => {
-                let user = UserMessage {
+                let user = Some(UserMessage {
                     user_id: result.user_id.clone(),
                     name: result.name.clone(),
                     birthday: result.birthday,
@@ -70,8 +69,8 @@ impl user_service_server::UserService for UserService {
                     blood_type: result.blood_type,
                     created_at: result.created_at,
                     updated_at: result.updated_at,
-                };
-                Ok(Response::new(GetUserResponse { user: Some(user) }))
+                });
+                Ok(Response::new(GetUserResponse { user }))
             }
             Err(err) => Err(Status::from(err)),
         }

@@ -1,15 +1,14 @@
 use async_trait::async_trait;
-use sqlx::{Error, MySql, Pool};
+use sqlx::{mysql::MySql, Error, Pool};
 
 use crate::app_error::error::AppError;
-
 use crate::domain::{model::user::User as UserModel, repository::user::User as UserRepository};
 
 #[derive(Debug)]
 pub struct User {}
 
 impl User {
-    pub fn new() -> User {
+    pub fn new() -> Self {
         User {}
     }
 }
@@ -17,7 +16,7 @@ impl User {
 #[async_trait]
 impl UserRepository for User {
     async fn list(&self, pool: Pool<MySql>) -> Result<Vec<UserModel>, AppError> {
-        let rows = sqlx::query_as::<_, UserModel>(
+        let result = sqlx::query_as::<_, UserModel>(
             r#"
 				SELECT
 					user_id,
@@ -27,7 +26,7 @@ impl UserRepository for User {
 					blood_type,
 					created_at,
 					updated_at,
-					is_deleted
+                    is_deleted
 				FROM
 					user
 				WHERE
@@ -37,7 +36,7 @@ impl UserRepository for User {
         .fetch_all(&pool)
         .await;
 
-        match rows {
+        match result {
             Ok(users) => Ok(users),
             Err(err) => Err(AppError::Internal(format!(
                 "persistence::user::UserRepoImpl::list failed to select user/ {}",

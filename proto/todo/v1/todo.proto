@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package todo_v1;
+
+service TodoService {
+	rpc ListTodo (ListTodoRequest) returns (ListTodoResponse);
+	rpc GetTodo (GetTodoRequest) returns (GetTodoResponse);
+	rpc CreateTodo (CreateTodoRequest) returns (CreateTodoResponse);
+	rpc UpdateTodo (UpdateTodoRequest) returns (UpdateTodoResponse);
+}
+
+message Todo {
+	string todo_id = 1;
+	string title = 2;
+	optional string description = 3;
+	TodoStatus status = 4;
+	int32 created_at = 5;
+	int32 updated_at = 6;
+}
+
+enum TodoStatus {
+	NotStarted = 0;
+	InProgress = 1;
+	Completed = 2;
+	Interrupted = 3;
+}
+
+message ListTodoRequest {}
+
+message ListTodoResponse {
+	repeated Todo todos = 1;
+}
+
+message GetTodoRequest {
+	string todo_id = 1;
+}
+
+message GetTodoResponse {
+	Todo todo = 1;
+}
+
+message CreateTodoRequest {
+	string title = 1;
+	optional string description = 2;
+}
+
+message CreateTodoResponse {
+	string todo_id = 1;
+}
+
+message UpdateTodoRequest {
+	string todo_id = 1;
+	string title = 2;
+	optional string description = 3;
+	int32 status = 4;
+}
+
+message UpdateTodoResponse {
+	string message = 1;
+}

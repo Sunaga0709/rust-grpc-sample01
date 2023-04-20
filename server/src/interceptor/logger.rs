@@ -1,8 +1,8 @@
-use futures::{future::BoxFuture};
+use futures::future::BoxFuture;
 use std::task::{Context, Poll};
-use tower::{Layer, Service};
 use tonic::transport::NamedService;
-use tracing::{info, error};
+use tower::{Layer, Service};
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct Logger<S> {
@@ -20,8 +20,8 @@ where
     S: Service<Req>,
     Req: std::fmt::Debug,
     S::Response: std::fmt::Debug,
-	S::Error: std::fmt::Debug,
-	S::Future: Send + 'static,
+    S::Error: std::fmt::Debug,
+    S::Future: Send + 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -32,9 +32,9 @@ where
     }
 
     fn call(&mut self, req: Req) -> Self::Future {
-		info!("{:?}", req);
-		let fut = self.inner.call(req);
-		Box::pin(async move {
+        info!("{:?}", req);
+        let fut = self.inner.call(req);
+        Box::pin(async move {
             let result = fut.await;
             match &result {
                 Ok(res) => {
@@ -46,7 +46,7 @@ where
             }
             result
         })
-	}
+    }
 }
 
 impl<S> NamedService for Logger<S>
