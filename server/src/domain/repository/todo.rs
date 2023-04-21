@@ -15,6 +15,13 @@ pub trait Todo {
     ) -> Result<TodoModel, AppError>;
     async fn create(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError>;
     async fn update(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError>;
+    async fn delete(
+        &self,
+        pool: Pool<MySql>,
+        user_id: String,
+        todo_id: String,
+        now: i32,
+    ) -> Result<(), AppError>;
 }
 
 impl std::fmt::Debug for dyn Todo + Send + Sync {

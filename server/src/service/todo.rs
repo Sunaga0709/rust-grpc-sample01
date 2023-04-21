@@ -3,10 +3,12 @@ use tonic::{Request, Response, Status};
 
 use crate::domain::repository::todo::Todo as TodoRepository;
 use crate::gen::grpc_api::todo_v1::{
-    todo_service_server, CreateTodoRequest, CreateTodoResponse, GetTodoRequest, GetTodoResponse,
-    ListTodoRequest, ListTodoResponse, Todo as TodoMessage, UpdateTodoRequest, UpdateTodoResponse,
+    todo_service_server, CreateTodoRequest, CreateTodoResponse, DeleteTodoRequest,
+    DeleteTodoResponse, GetTodoRequest, GetTodoResponse, ListTodoRequest, ListTodoResponse,
+    Todo as TodoMessage, UpdateTodoRequest, UpdateTodoResponse,
 };
 use crate::usecase::todo::Todo as TodoUsecase;
+use crate::util::datetime;
 
 pub struct TodoService {
     repo: Box<dyn TodoRepository + Send + Sync + 'static>,
@@ -121,6 +123,31 @@ impl todo_service_server::TodoService for TodoService {
             Ok(_) => Ok(Response::new(UpdateTodoResponse {
                 message: "success".to_string(),
             })),
+            Err(err) => Err(Status::from(err)),
+        }
+    }
+
+    async fn delete_todo(
+        &self,
+        req: Request<DeleteTodoRequest>,
+    ) -> Result<Response<DeleteTodoResponse>, Status> {
+        // TODO: 後で認証入れたい
+        let user_id = "testUserId1".to_string();
+
+        match self
+            .repo
+            .delete(
+                self.pool.clone(),
+                user_id,
+                req.into_inner().todo_id,
+                datetime::get_timestamp(),
+            )
+            .await
+        {
+            Ok(()) => {
+                let message = "success".to_string();
+                Ok(Response::new(DeleteTodoResponse { message }))
+            }
             Err(err) => Err(Status::from(err)),
         }
     }

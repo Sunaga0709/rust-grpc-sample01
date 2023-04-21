@@ -12,10 +12,12 @@ ps:
 	docker-compose -p sample-grpc ps
 cargo-add:
 	docker-compose -p sample-grpc exec api cargo add ${crate}
-cargo-build:
-	docker-compose -p sample-grpc exec api cargo build
+cargo-build: # -jオプションはビルドを実行するスレッド数を指定
+	docker-compose -p sample-grpc exec api cargo build -j 4
 cargo-build-with-detail:
 	docker-compose -p sample-grpc exec api cargo build --verbose
+cargo-check: # コンパイルチェック、実際にコンパイルは行わない
+	docker-compose -p sample-grpc exec api cargo check
 cargo-clean:
 	docker-compose -p sample-grpc exec api cargo clean
 cargo-fmt: # フォーマッタ
@@ -26,6 +28,8 @@ cargo-update:
 	docker-compose -p sample-grpc exec api cargo update
 serve:
 	docker-compose -p sample-grpc exec api cargo run
+gen-proto:
+	mkdir -p ../proto/${name}/v1 && touch ../proto/${name}/v1/${name}.proto
 buf-generate:
 	cd .. ; rm ./server/src/gen/grpc_api/* ; buf generate
 buf-lint:

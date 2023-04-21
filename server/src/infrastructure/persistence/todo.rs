@@ -161,4 +161,46 @@ impl TodoRepository for Todo {
             )),
         }
     }
+
+    async fn delete(
+        &self,
+        pool: Pool<MySql>,
+        user_id: String,
+        todo_id: String,
+        now: i32,
+    ) -> Result<(), AppError> {
+        let result = sqlx::query(
+            r#"
+                UPDATE
+                    todo
+                SET
+                    updated_at = ?,
+                    is_deleted = TRUE
+                WHERE
+                    user_id = ?
+                    AND todo_id = ?
+                    AND is_deleted = FALSE
+            "#,
+        )
+        .bind(now)
+        .bind(&user_id)
+        .bind(&todo_id)
+        .execute(&pool)
+        .await;
+
+        match result {
+            Ok(result) => {
+                if result.rows_affected() == 1 {
+                    Ok(())
+                } else {
+                    Err(AppError::NotFound(
+                        "persistence::todo::Todo::delete todo not found".to_string(),
+                    ))
+                }
+            }
+            Err(err) => Err(AppError::Internal(
+                format!("persistence::todo::Todo::delete todo not found/ {}", err,).to_string(),
+            )),
+        }
+    }
 }
