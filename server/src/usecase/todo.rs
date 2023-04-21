@@ -7,7 +7,6 @@ use crate::domain::{
     },
 };
 
-#[derive(Debug)]
 pub struct Todo {
     repo: Box<dyn TodoRepository + Send + Sync>,
     conn: Box<dyn DBConn + Send + Sync + 'static>,
