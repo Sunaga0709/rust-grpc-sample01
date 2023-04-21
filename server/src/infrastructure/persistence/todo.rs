@@ -4,8 +4,12 @@ use sqlx::{mysql::MySql, Error, Pool};
 use crate::app_error::error::AppError;
 use crate::domain::{
     model::{comment::Comment as CommentModel, todo::Todo as TodoModel},
-    repository::todo::Todo as TodoRepository,
+    repository::{
+        db_conn::DBConn,
+        todo::Todo as TodoRepository
+    },
 };
+
 
 #[derive(Debug)]
 pub struct Todo {}
@@ -18,80 +22,105 @@ impl Todo {
 
 #[async_trait]
 impl TodoRepository for Todo {
-    async fn list(&self, pool: Pool<MySql>, user_id: String) -> Result<Vec<TodoModel>, AppError> {
-        let result = sqlx::query_as::<_, TodoModel>(
+    async fn list(&self, conn: dyn DBConn, user_id: String) -> Result<Vec<TodoModel>, AppError> {
+        let result = conn.query_with_params(
             r#"
-				SELECT
-					todo_id,
-					user_id,
-					title,
-					description,
-					status,
-					created_at,
-					updated_at
-				FROM
-					todo
-				WHERE
-					user_id = ?
-					AND is_deleted = FALSE
-			"#,
-        )
-        .bind(&user_id)
-        .fetch_all(&pool)
-        .await;
+                SELECT
+                    todo_id,
+                    user_id,
+                    title,
+                    description,
+                    status,
+                    created_at,
+                    updated_at
+                FROM
+                    todo
+                WHERE
+                    user_id = ?
+                    AND is_deleted = FALSE
+            "#,
+            &[&user_id]
+        ).await;
 
         match result {
-            Ok(todos) => Ok(todos),
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::list failed to get todos/ {}",
-                err
-            ))),
+            Ok(rows) => {
+                let todos = rows
+                    .iter()
+                    .map(|todo| TodoModel {
+                        todo_id: todo.get("todo_id"),
+                        user_id: todo.get("user_id"),
+                        title: todo.get("title"),
+                        description: todo.get("description"),
+                        status: todo.get("status"),
+                        created_at: todo.get("created_at"),
+                        updated_at: todo.get("updated_at"),
+                    })
+                    .collect();
+                Ok(todos)
+            },
+            Err(err) => {
+                Err(AppError::Internal(
+                    format!("persistence::todo::Todo::list failed to select todos/ {}", err),
+                ))
+            },
         }
     }
 
     async fn get(
         &self,
-        pool: Pool<MySql>,
+        conn: dyn DBConn,
         user_id: String,
         todo_id: String,
     ) -> Result<TodoModel, AppError> {
-        let result = sqlx::query_as::<_, TodoModel>(
+        let result = conn.query_one_with_params(
             r#"
-				SELECT
-					todo_id,
-					user_id,
-					title,
-					description,
-					status,
-					created_at,
-					updated_at
-				FROM
-					todo
-				WHERE
-					user_id = ?
-					AND todo_id = ?
-					AND is_deleted = FALSE
-			"#,
-        )
-        .bind(&user_id)
-        .bind(&todo_id)
-        .fetch_one(&pool)
-        .await;
-
+                SELECT
+                    todo_id,
+                    user_id,
+                    title,
+                    description,
+                    status,
+                    created_at,
+                    updated_at
+                FROM
+                    todo
+                WHERE
+                    user_id = ?
+                    AND todo_id = ?
+                    AND is_deleted = FALSE
+            "#,
+            &[&user_id, &todo_id],
+        ).await;
+        
         match result {
-            Ok(todo) => Ok(todo),
-            Err(Error::RowNotFound) => Err(AppError::NotFound(
-                "persistence::todo::Todo::get not found todo".to_string(),
-            )),
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::get failed to get todo/ {}",
-                err
-            ))),
+            Ok(row) => {
+                Ok(TodoModel {
+                    todo_id: row.get("todo_id"),
+                    user_id: row.get("user_id"),
+                    title: row.get("titile"),
+                    description: row.get("description"),
+                    status: row.get("status"),
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                })
+            },
+            Err(Error::RowNotFound) => {
+                Err(AppError::NotFound(
+                    "persistence::todo::Todo::get todo not found".to_string()
+                ))
+            },
+            Err(err) => {
+                Err(AppError::Internal(
+                    format!(
+                        "persistence::todo::Todo::get failed to get todo/ {}", err
+                    )
+                ))
+            }
         }
     }
 
-    async fn create(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError> {
-        let result = sqlx::query(
+    async fn create(&self, conn: dyn DBConn, todo: TodoModel) -> Result<(), AppError> {
+        let result = conn.execute_with_params(
             r#"
 				INSERT INTO todo (
 					todo_id, user_id, title, description, status, created_at, updated_at
@@ -99,76 +128,58 @@ impl TodoRepository for Todo {
 					?, ?, ?, ?, ?, ?, ?
 				)
 			"#,
-        )
-        .bind(&todo.todo_id)
-        .bind(&todo.user_id)
-        .bind(&todo.title)
-        .bind(&todo.description)
-        .bind(todo.status)
-        .bind(todo.created_at)
-        .bind(todo.updated_at)
-        .execute(&pool)
-        .await;
+            &[&todo.todo_id, &todo.user_id, &todo.title, &todo.description, &todo.status, &todo.created_at, &todo.updated_at]
+        ).await;
 
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::create failed to create todo/ {}",
-                err,
-            ))),
+            Err(err) => {
+                Err(AppError::Internal(format!("persistence::todo::Todo::create failed to create todo/ {}", err)))
+            }
         }
     }
 
-    async fn update(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError> {
-        let result = sqlx::query(
+    async fn update(&self, conn: dyn DBConn, todo: TodoModel) -> Result<(), AppError> {
+        let result = conn.execute_with_params(
             r#"
-				UPDATE
-					todo
-				SET
-					title = ?,
-					description = ?,
-					status = ?,
-					updated_at = ?
-				WHERE
-					todo_id = ?
-					AND user_id = ?
-					AND is_deleted = FALSE
-			"#,
-        )
-        .bind(&todo.title)
-        .bind(&todo.description)
-        .bind(todo.status)
-        .bind(todo.updated_at)
-        .bind(&todo.todo_id)
-        .bind(&todo.user_id)
-        .execute(&pool)
-        .await;
+                UPDATE
+                    todo
+                SET
+                    title = ?,
+                    description = ?,
+                    status = ?,
+                    updated_at = ?
+                WHERE
+                    todo_id = ?
+                    AND user_id = ?
+                    AND is_deleted = FALSE
+            "#,
+            &[&todo.title, &todo.description, &todo.status, &todo.updated_at, &todo.todo_id, &todo.user_id]
+        ).await;
 
         match result {
-            Ok(result) => {
-                if result.rows_affected() == 1 {
-                    Ok(())
-                } else {
-                    Err(AppError::NotFound(
-                        "persistence::todo::Todo::update todo not found".to_string(),
-                    ))
+            Ok(rows) => {
+                if rows == 1 {
+                    return Ok(())
                 }
+                Err(AppError::NotFound("persistence::todo::Todo::update todo not found".to_string()))
+            },
+            Err(err) => {
+                Err(AppError::Internal(
+                    format!("persistence::todo::Todo::update failed to update todo/ {}", err)
+                ))
             }
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::update failed to update todo/ {}",
-                err
-            ))),
         }
     }
 
     async fn delete(
         &self,
-        pool: Pool<MySql>,
+        conn: dyn DBConn,
         user_id: String,
         todo_id: String,
         now: i32,
     ) -> Result<(), AppError> {
-        let result = sqlx::query(
+        let result = conn.execute_with_params(
             r#"
                 UPDATE
                     todo
@@ -180,36 +191,32 @@ impl TodoRepository for Todo {
                     AND todo_id = ?
                     AND is_deleted = FALSE
             "#,
-        )
-        .bind(now)
-        .bind(&user_id)
-        .bind(&todo_id)
-        .execute(&pool)
-        .await;
+            &[&now, &user_id, &todo_id],
+        ).await;
 
         match result {
-            Ok(result) => {
-                if result.rows_affected() == 1 {
-                    Ok(())
-                } else {
-                    Err(AppError::NotFound(
-                        "persistence::todo::Todo::delete todo not found".to_string(),
-                    ))
+            Ok(rows) => {
+                if rows == 1 {
+                    return Ok(())
                 }
+                Err(AppError::NotFound(
+                    "persistence::todo::Todo::delete todo not found".to_string()
+                ))
+            },
+            Err(err) => {
+                Err(AppError::Internal(
+                    format!("persistence::todo::Todo::delete failed to delete todo/ {}", err)
+                ))
             }
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::delete todo not found/ {}",
-                err
-            ))),
         }
     }
 
     async fn create_comment(
         &self,
-        pool: Pool<MySql>,
+        conn: dyn DBConn,
         comment: CommentModel,
     ) -> Result<(), AppError> {
-        let result = sqlx::query(
+        let result = conn.execute_with_params(
             r#"
                 INSERT INTO comment (
                     comment_id, todo_id, text, created_at
@@ -217,20 +224,16 @@ impl TodoRepository for Todo {
                     ?, ?, ?, ?
                 )
             "#,
-        )
-        .bind(&comment.comment_id)
-        .bind(&comment.todo_id)
-        .bind(&comment.text)
-        .bind(comment.created_at)
-        .execute(&pool)
-        .await;
+            &[&comment.comment_id, &comment.todo_id, &comment.text, &comment.created_at],
+        ).await;
 
         match result {
-            Ok(_) => Ok(()),
-            Err(err) => Err(AppError::Internal(format!(
-                "persistence::todo::Todo::create_comment failed to comment/ {}",
-                err,
-            ))),
+            Ok(rows) => Ok(()),
+            Err(err) => {
+                Err(AppError::Internal(
+                    format!("persistence::todo::Todo::create_comment failed to create comment/ {}", err)
+                ))
+            }
         }
     }
 }

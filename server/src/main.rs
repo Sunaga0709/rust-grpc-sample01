@@ -52,8 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TodoService
     let todo_service = todo_service_server::TodoServiceServer::new(TodoService::new(
         Box::new(TodoRepoImpl::new()),
-        TodoUsecase::new(Box::new(TodoRepoImpl::new()), pool.clone()),
-        pool.clone(),
+        TodoUsecase::new(Box::new(TodoRepoImpl::new()), Box::new(pool.clone())),
+        Box::new(pool.clone(),)
     ));
     let todo_with_logger = ServiceBuilder::new()
         .layer(LoggingMiddlewareLayer)
@@ -62,8 +62,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // UserService
     let user_service = user_service_server::UserServiceServer::new(UserService::new(
         Box::new(UserRepoImpl::new()),
-        UserUsecase::new(Box::new(UserRepoImpl::new()), pool.clone()),
-        pool.clone(),
+        UserUsecase::new(Box::new(UserRepoImpl::new()), Box::new(pool.clone())),
+        Box::new(pool.clone(),)
     ));
     let user_with_logger = ServiceBuilder::new()
         .layer(LoggingMiddlewareLayer)

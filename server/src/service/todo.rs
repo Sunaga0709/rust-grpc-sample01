@@ -1,7 +1,9 @@
-use sqlx::{mysql::MySql, Pool};
 use tonic::{Request, Response, Status};
 
-use crate::domain::repository::todo::Todo as TodoRepository;
+use crate::domain::repository::{
+    db_conn::DBConn,
+    todo::Todo as TodoRepository
+};
 use crate::gen::grpc_api::todo_v1::{
     todo_service_server, CreateCommentRequest, CreateCommentResponse, CreateTodoRequest,
     CreateTodoResponse, DeleteTodoRequest, DeleteTodoResponse, GetTodoRequest, GetTodoResponse,
@@ -13,16 +15,16 @@ use crate::util::datetime;
 pub struct TodoService {
     repo: Box<dyn TodoRepository + Send + Sync + 'static>,
     uc: TodoUsecase,
-    pool: Pool<MySql>,
+    conn: Box<dyn DBConn + Send + Sync + 'static>,
 }
 
 impl TodoService {
     pub fn new(
         repo: Box<dyn TodoRepository + Send + Sync + 'static>,
         uc: TodoUsecase,
-        pool: Pool<MySql>,
+        conn: Box<dyn DBConn + Send + Sync + 'static>,
     ) -> Self {
-        TodoService { repo, uc, pool }
+        TodoService { repo, uc, conn }
     }
 }
 
@@ -35,7 +37,7 @@ impl todo_service_server::TodoService for TodoService {
         // TODO: 後で認証を入れたい
         let user_id = "testUserId1".to_string();
 
-        match self.repo.list(self.pool.clone(), user_id).await {
+        match self.repo.list(self.conn, user_id).await {
             Ok(result_todo) => {
                 let todos: Vec<TodoMessage> = result_todo
                     .iter()
@@ -64,7 +66,7 @@ impl todo_service_server::TodoService for TodoService {
 
         match self
             .repo
-            .get(self.pool.clone(), user_id, req.into_inner().todo_id)
+            .get(self.conn, user_id, req.into_inner().todo_id)
             .await
         {
             Ok(result) => {
@@ -137,7 +139,7 @@ impl todo_service_server::TodoService for TodoService {
         match self
             .repo
             .delete(
-                self.pool.clone(),
+                self.conn,
                 user_id,
                 req.into_inner().todo_id,
                 datetime::get_timestamp(),
