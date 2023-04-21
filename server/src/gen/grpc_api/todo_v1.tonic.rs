@@ -163,6 +163,25 @@ pub mod todo_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
+        pub async fn create_comment(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CreateCommentRequest>,
+        ) -> Result<tonic::Response<super::CreateCommentResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/todo_v1.TodoService/CreateComment",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -192,6 +211,10 @@ pub mod todo_service_server {
             &self,
             request: tonic::Request<super::DeleteTodoRequest>,
         ) -> Result<tonic::Response<super::DeleteTodoResponse>, tonic::Status>;
+        async fn create_comment(
+            &self,
+            request: tonic::Request<super::CreateCommentRequest>,
+        ) -> Result<tonic::Response<super::CreateCommentResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct TodoServiceServer<T: TodoService> {
@@ -431,6 +454,46 @@ pub mod todo_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = DeleteTodoSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/todo_v1.TodoService/CreateComment" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateCommentSvc<T: TodoService>(pub Arc<T>);
+                    impl<
+                        T: TodoService,
+                    > tonic::server::UnaryService<super::CreateCommentRequest>
+                    for CreateCommentSvc<T> {
+                        type Response = super::CreateCommentResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateCommentRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move {
+                                (*inner).create_comment(request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CreateCommentSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

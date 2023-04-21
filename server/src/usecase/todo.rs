@@ -1,7 +1,10 @@
 use sqlx::{mysql::MySql, Pool};
 
 use crate::app_error::error::AppError;
-use crate::domain::{model::todo::Todo as TodoModel, repository::todo::Todo as TodoRepository};
+use crate::domain::{
+    model::{comment::Comment as CommentModel, todo::Todo as TodoModel},
+    repository::todo::Todo as TodoRepository,
+};
 
 #[derive(Debug)]
 pub struct Todo {
@@ -10,6 +13,7 @@ pub struct Todo {
 }
 
 impl Todo {
+    // todo
     pub fn new(repo: Box<dyn TodoRepository + Send + Sync>, pool: Pool<MySql>) -> Self {
         Todo { repo, pool }
     }
@@ -28,7 +32,7 @@ impl Todo {
         let _new_todo = TodoModel::new_create(user_id, title, description);
 
         match self.repo.create(self.pool.clone(), _new_todo.clone()).await {
-            Ok(_) => Ok(String::from(_new_todo.todo_id.clone())),
+            Ok(_) => Ok(_new_todo.clone().todo_id),
             Err(err) => Err(err),
         }
     }
@@ -51,6 +55,22 @@ impl Todo {
 
         match self.repo.update(self.pool.clone(), _new_todo.clone()).await {
             Ok(()) => Ok(()),
+            Err(err) => Err(err),
+        }
+    }
+
+    // comment
+    pub async fn create_comment(&self, todo_id: String, text: String) -> Result<String, AppError> {
+        let todo_id = CommentModel::new_todo_id(todo_id)?;
+        let text = CommentModel::new_text(text)?;
+        let _new_comment = CommentModel::new(todo_id, text);
+
+        match self
+            .repo
+            .create_comment(self.pool.clone(), _new_comment.clone())
+            .await
+        {
+            Ok(_) => Ok(_new_comment.clone().comment_id),
             Err(err) => Err(err),
         }
     }

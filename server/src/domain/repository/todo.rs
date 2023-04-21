@@ -2,10 +2,11 @@ use async_trait::async_trait;
 use sqlx::{MySql, Pool};
 
 use crate::app_error::error::AppError;
-use crate::domain::model::todo::Todo as TodoModel;
+use crate::domain::model::{comment::Comment as CommentModel, todo::Todo as TodoModel};
 
 #[async_trait]
 pub trait Todo {
+    // todo
     async fn list(&self, pool: Pool<MySql>, user_id: String) -> Result<Vec<TodoModel>, AppError>;
     async fn get(
         &self,
@@ -21,6 +22,13 @@ pub trait Todo {
         user_id: String,
         todo_id: String,
         now: i32,
+    ) -> Result<(), AppError>;
+
+    // comment
+    async fn create_comment(
+        &self,
+        pool: Pool<MySql>,
+        comment: CommentModel,
     ) -> Result<(), AppError>;
 }
 

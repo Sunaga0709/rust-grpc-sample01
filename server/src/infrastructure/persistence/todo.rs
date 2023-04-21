@@ -2,7 +2,10 @@ use async_trait::async_trait;
 use sqlx::{mysql::MySql, Error, Pool};
 
 use crate::app_error::error::AppError;
-use crate::domain::{model::todo::Todo as TodoModel, repository::todo::Todo as TodoRepository};
+use crate::domain::{
+    model::{comment::Comment as CommentModel, todo::Todo as TodoModel},
+    repository::todo::Todo as TodoRepository,
+};
 
 #[derive(Debug)]
 pub struct Todo {}
@@ -39,9 +42,10 @@ impl TodoRepository for Todo {
 
         match result {
             Ok(todos) => Ok(todos),
-            Err(err) => Err(AppError::Internal(
-                format!("persistence::todo::Todo::list failed to get todos/ {}", err,).to_string(),
-            )),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::list failed to get todos/ {}",
+                err
+            ))),
         }
     }
 
@@ -79,9 +83,10 @@ impl TodoRepository for Todo {
             Err(Error::RowNotFound) => Err(AppError::NotFound(
                 "persistence::todo::Todo::get not found todo".to_string(),
             )),
-            Err(err) => Err(AppError::Internal(
-                format!("persistence::todo::Todo::get failed to get todo/ {}", err,).to_string(),
-            )),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::get failed to get todo/ {}",
+                err
+            ))),
         }
     }
 
@@ -107,13 +112,10 @@ impl TodoRepository for Todo {
 
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(AppError::Internal(
-                format!(
-                    "persistence::todo::Todo::create failed to create todo/ {}",
-                    err,
-                )
-                .to_string(),
-            )),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::create failed to create todo/ {}",
+                err,
+            ))),
         }
     }
 
@@ -152,13 +154,10 @@ impl TodoRepository for Todo {
                     ))
                 }
             }
-            Err(err) => Err(AppError::Internal(
-                format!(
-                    "persistence::todo::Todo::update failed to update todo/ {}",
-                    err
-                )
-                .to_string(),
-            )),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::update failed to update todo/ {}",
+                err
+            ))),
         }
     }
 
@@ -198,9 +197,40 @@ impl TodoRepository for Todo {
                     ))
                 }
             }
-            Err(err) => Err(AppError::Internal(
-                format!("persistence::todo::Todo::delete todo not found/ {}", err,).to_string(),
-            )),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::delete todo not found/ {}",
+                err
+            ))),
+        }
+    }
+
+    async fn create_comment(
+        &self,
+        pool: Pool<MySql>,
+        comment: CommentModel,
+    ) -> Result<(), AppError> {
+        let result = sqlx::query(
+            r#"
+                INSERT INTO comment (
+                    comment_id, todo_id, text, created_at
+                ) VALUES (
+                    ?, ?, ?, ?
+                )
+            "#,
+        )
+        .bind(&comment.comment_id)
+        .bind(&comment.todo_id)
+        .bind(&comment.text)
+        .bind(comment.created_at)
+        .execute(&pool)
+        .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(AppError::Internal(format!(
+                "persistence::todo::Todo::create_comment failed to comment/ {}",
+                err,
+            ))),
         }
     }
 }

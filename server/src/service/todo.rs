@@ -3,9 +3,9 @@ use tonic::{Request, Response, Status};
 
 use crate::domain::repository::todo::Todo as TodoRepository;
 use crate::gen::grpc_api::todo_v1::{
-    todo_service_server, CreateTodoRequest, CreateTodoResponse, DeleteTodoRequest,
-    DeleteTodoResponse, GetTodoRequest, GetTodoResponse, ListTodoRequest, ListTodoResponse,
-    Todo as TodoMessage, UpdateTodoRequest, UpdateTodoResponse,
+    todo_service_server, CreateCommentRequest, CreateCommentResponse, CreateTodoRequest,
+    CreateTodoResponse, DeleteTodoRequest, DeleteTodoResponse, GetTodoRequest, GetTodoResponse,
+    ListTodoRequest, ListTodoResponse, Todo as TodoMessage, UpdateTodoRequest, UpdateTodoResponse,
 };
 use crate::usecase::todo::Todo as TodoUsecase;
 use crate::util::datetime;
@@ -148,6 +148,22 @@ impl todo_service_server::TodoService for TodoService {
                 let message = "success".to_string();
                 Ok(Response::new(DeleteTodoResponse { message }))
             }
+            Err(err) => Err(Status::from(err)),
+        }
+    }
+
+    async fn create_comment(
+        &self,
+        req: Request<CreateCommentRequest>,
+    ) -> Result<Response<CreateCommentResponse>, Status> {
+        let param = req.into_inner();
+
+        match self
+            .uc
+            .create_comment(param.clone().todo_id, param.clone().text)
+            .await
+        {
+            Ok(comment_id) => Ok(Response::new(CreateCommentResponse { comment_id })),
             Err(err) => Err(Status::from(err)),
         }
     }

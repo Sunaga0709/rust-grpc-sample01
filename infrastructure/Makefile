@@ -36,7 +36,7 @@ buf-lint:
 	cd ..; buf lint
 db-create: # 初回のみ
 	docker-compose -p sample-grpc exec api sqlx database create
-migrate-add: # マイグレーションファイル作成
+migrate-create: # マイグレーションファイル作成
 	docker-compose -p sample-grpc exec api sqlx migrate add create_${name}_table
 migrate: # マイグレーション実行
 	docker-compose -p sample-grpc exec api sqlx migrate run

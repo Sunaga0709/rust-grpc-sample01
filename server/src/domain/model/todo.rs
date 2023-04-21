@@ -47,7 +47,7 @@ impl Todo {
     }
 
     pub fn new_title(title: String) -> Result<String, AppError> {
-        if title.len() == 0 {
+        if title.is_empty() {
             return Err(AppError::BadRequest(
                 "model::todo::new_title empty title".to_string(),
             ));
@@ -61,7 +61,7 @@ impl Todo {
     }
 
     pub fn new_status(status: i32) -> Result<i32, AppError> {
-        if status < 0 || 3 < status {
+        if !(0..=3).contains(&status) {
             return Err(AppError::BadRequest(
                 "model::todo::new_status range of 0 ~ 3".to_string(),
             ));
