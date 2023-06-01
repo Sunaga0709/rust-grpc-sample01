@@ -1,24 +1,25 @@
 use async_trait::async_trait;
-use sqlx::{MySql, Pool};
 
 use crate::app_error::error::AppError;
 use crate::domain::model::{comment::Comment as CommentModel, todo::Todo as TodoModel};
 
+use super::db_conn::DBConn;
+
 #[async_trait]
 pub trait Todo {
     // todo
-    async fn list(&self, pool: Pool<MySql>, user_id: String) -> Result<Vec<TodoModel>, AppError>;
+    async fn list(&self, conn: Box<dyn DBConn + Send + Sync + 'static>, user_id: String) -> Result<Vec<TodoModel>, AppError>;
     async fn get(
         &self,
-        pool: Pool<MySql>,
+        conn: Box<dyn DBConn + Send + Sync + 'static>,
         user_id: String,
         todo_id: String,
     ) -> Result<TodoModel, AppError>;
-    async fn create(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError>;
-    async fn update(&self, pool: Pool<MySql>, todo: TodoModel) -> Result<(), AppError>;
+    async fn create(&self, conn: Box<dyn DBConn + Send + Sync + 'static>, todo: TodoModel) -> Result<(), AppError>;
+    async fn update(&self, conn: Box<dyn DBConn + Send + Sync + 'static>, todo: TodoModel) -> Result<(), AppError>;
     async fn delete(
         &self,
-        pool: Pool<MySql>,
+        conn: Box<dyn DBConn + Send + Sync + 'static>,
         user_id: String,
         todo_id: String,
         now: i32,
@@ -27,7 +28,7 @@ pub trait Todo {
     // comment
     async fn create_comment(
         &self,
-        pool: Pool<MySql>,
+        conn: Box<dyn DBConn + Send + Sync + 'static>,
         comment: CommentModel,
     ) -> Result<(), AppError>;
 }

@@ -1,21 +1,21 @@
-use sqlx::{mysql::MySql, Pool};
-
 use crate::app_error::error::AppError;
 use crate::domain::{
     model::{comment::Comment as CommentModel, todo::Todo as TodoModel},
-    repository::todo::Todo as TodoRepository,
+    repository::{
+        db_conn::DBConn,
+        todo::Todo as TodoRepository,
+    },
 };
 
-#[derive(Debug)]
 pub struct Todo {
     repo: Box<dyn TodoRepository + Send + Sync>,
-    pool: Pool<MySql>,
+    conn: Box<dyn DBConn + Send + Sync + 'static>,
 }
 
 impl Todo {
     // todo
-    pub fn new(repo: Box<dyn TodoRepository + Send + Sync>, pool: Pool<MySql>) -> Self {
-        Todo { repo, pool }
+    pub fn new(repo: Box<dyn TodoRepository + Send + Sync>, conn: Box<dyn DBConn + Send + Sync + 'static>) -> Self {
+        Todo { repo, conn }
     }
 
     pub async fn create(
@@ -31,7 +31,7 @@ impl Todo {
         };
         let _new_todo = TodoModel::new_create(user_id, title, description);
 
-        match self.repo.create(self.pool.clone(), _new_todo.clone()).await {
+        match self.repo.create(self.conn, _new_todo.clone()).await {
             Ok(_) => Ok(_new_todo.clone().todo_id),
             Err(err) => Err(err),
         }
@@ -53,7 +53,7 @@ impl Todo {
         let status = TodoModel::new_status(status)?;
         let _new_todo = TodoModel::new_update(todo_id, user_id, title, description, status);
 
-        match self.repo.update(self.pool.clone(), _new_todo.clone()).await {
+        match self.repo.update(self.conn, _new_todo.clone()).await {
             Ok(()) => Ok(()),
             Err(err) => Err(err),
         }
@@ -67,7 +67,7 @@ impl Todo {
 
         match self
             .repo
-            .create_comment(self.pool.clone(), _new_comment.clone())
+            .create_comment(self.conn, _new_comment.clone())
             .await
         {
             Ok(_) => Ok(_new_comment.clone().comment_id),

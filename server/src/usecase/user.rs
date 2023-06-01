@@ -1,16 +1,13 @@
-use sqlx::{mysql::MySql, Pool};
-
 use crate::app_error::error::AppError;
-use crate::domain::{model::user::User as UserModel, repository::user::User as UserRepository};
+use crate::domain::{model::user::User as UserModel, repository::{db_conn::DBConn, user::User as UserRepository}};
 
-#[derive(Debug)]
 pub struct User {
     repo: Box<dyn UserRepository + Send + Sync>,
-    pool: Pool<MySql>,
+    conn: Box<dyn DBConn + Send + Sync + 'static>,
 }
 impl User {
-    pub fn new(repo: Box<dyn UserRepository + Send + Sync>, pool: Pool<MySql>) -> Self {
-        User { repo, pool }
+    pub fn new(repo: Box<dyn UserRepository + Send + Sync>, conn: Box<dyn DBConn + Send + Sync>) -> Self {
+        User { repo, conn }
     }
 
     pub async fn create(
@@ -26,7 +23,7 @@ impl User {
         let _new_user = UserModel::new_create(name, birthday, email, blood_type);
 
         self.repo
-            .create(self.pool.clone(), _new_user.clone())
+            .create(self.conn, _new_user.clone())
             .await?;
 
         Ok(_new_user.user_id)
@@ -36,7 +33,7 @@ impl User {
         let name = UserModel::new_user_name(name)?;
         let _new_user = UserModel::new_update(user_id, name);
 
-        self.repo.update(self.pool.clone(), _new_user).await?;
+        self.repo.update(self.conn, _new_user).await?;
 
         Ok(())
     }

@@ -1,7 +1,6 @@
-use sqlx::{mysql::MySql, Pool};
 use tonic::{Request, Response, Status};
 
-use crate::domain::repository::user::User as UserRepository;
+use crate::domain::repository::{db_conn::DBConn, user::User as UserRepository};
 use crate::gen::grpc_api::user_v1::{
     user_service_server, CreateUserRequest, CreateUserResponse, DeleteUserRequest,
     DeleteUserResponse, GetUserRequest, GetUserResponse, ListUserRequest, ListUserResponse,
@@ -13,16 +12,16 @@ use crate::util::datetime;
 pub struct UserService {
     repo: Box<dyn UserRepository + Send + Sync + 'static>,
     uc: UserUsecase,
-    pool: Pool<MySql>,
+    conn: Box<dyn DBConn + Send + Sync + 'static>,
 }
 
 impl UserService {
     pub fn new(
         repo: Box<dyn UserRepository + Send + Sync + 'static>,
         uc: UserUsecase,
-        pool: Pool<MySql>,
+        conn: Box<dyn DBConn + Send + Sync + 'static>,
     ) -> Self {
-        UserService { repo, uc, pool }
+        UserService { repo, uc, conn }
     }
 }
 
@@ -32,7 +31,7 @@ impl user_service_server::UserService for UserService {
         &self,
         _: Request<ListUserRequest>,
     ) -> Result<Response<ListUserResponse>, Status> {
-        match self.repo.list(self.pool.clone()).await {
+        match self.repo.list(self.conn).await {
             Ok(result_users) => {
                 let users: Vec<UserMessage> = result_users
                     .iter()
@@ -59,7 +58,7 @@ impl user_service_server::UserService for UserService {
     ) -> Result<Response<GetUserResponse>, Status> {
         let user_id = req.into_inner().user_id;
 
-        match self.repo.get(self.pool.clone(), user_id).await {
+        match self.repo.get(self.conn, user_id).await {
             Ok(result) => {
                 let user = Some(UserMessage {
                     user_id: result.user_id.clone(),
@@ -116,7 +115,7 @@ impl user_service_server::UserService for UserService {
         let user_id = req.into_inner().user_id;
         let now = datetime::get_timestamp();
 
-        match self.repo.delete(self.pool.clone(), user_id, now).await {
+        match self.repo.delete(self.conn, user_id, now).await {
             Ok(_) => {
                 let message = "success".to_string();
                 Ok(Response::new(DeleteUserResponse { message }))
